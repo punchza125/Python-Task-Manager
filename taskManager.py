@@ -13,8 +13,6 @@ def clear_terminal():
 clear_terminal()
 
 
-
-
 class Job():
     def __init__(self,name, describe ,deadline ,job_id = str(uuid.uuid4().int)[:4]):
         self.name = name
@@ -64,11 +62,14 @@ def display_list():
         print(row)
 
 #-------1. start Program
-job_list = [{"name": "backup Server", "describe": "ทำการ....", "deadline": "25-08-2025", "job_id" : 4456}]
+job_list = [{"name": "backup Server", "describe": "ทำการ....", "deadline": "2025-01-2025", "job_id" : 4456},
+            {"name": "checkSystem", "describe": "ทำการ....", "deadline": "2025-08-2026", "job_id" : 1240}
+            ]
 
 print("------------------------ Task Manager ------------------------")
 display_list()
 print("------------------------1. Add Task --------------------------")
+print("-----------------------2. Delete Task ------------------------")
 menu_selector = int(input("Please Select a menu: "))
 if menu_selector == 1:
     print("you selected")
@@ -79,17 +80,23 @@ if menu_selector == 1:
         year, month, day = map(int, date_string.split('-'))
         user_date = dt.date(year, month, day)
         print(f"You entered: {user_date}")
+    
+        
     except ValueError:
         print("Invalid date format. Please use YYYY-MM-DD.")
+
+    job = Job(job_name, job_describe, user_date)
+    job.create_job()
+    clear_terminal()
+    display_list()
     
-    
+elif menu_selector == 2:
+    job_id_to_remove = int(input("Please enter your job ID: "))
+    job_list = [i for i in job_list if i['job_id'] != job_id_to_remove]
+    clear_terminal()
+    display_list()
+  
 
 
 else :
     print("...")
-job = Job(job_name, job_describe, user_date)
-job.create_job()
-clear_terminal()
-display_list()
-
-
