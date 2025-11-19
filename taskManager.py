@@ -3,14 +3,16 @@ import uuid
 import os 
 ## class Job : ประกอบด้วย user_name, jobID, deadline
 
-
+state = True
+job_list = [{"name": "backup Server", "describe": "ทำการ....", "deadline": "2025-01-2025", "job_id" : 4456},
+                {"name": "checkSystem", "describe": "ทำการ....", "deadline": "2025-08-2026", "job_id" : 1240}
+                ]
 def clear_terminal():
     if os.name == 'nt':
         os.system('cls')
     else:
         os.system('clear')
 
-clear_terminal()
 
 
 class Job():
@@ -60,43 +62,97 @@ def display_list():
     for i in job_list:
         row = " | ".join(str(i.get(h, "")).ljust(widths[h]) for h in headers)
         print(row)
-
-#-------1. start Program
-job_list = [{"name": "backup Server", "describe": "ทำการ....", "deadline": "2025-01-2025", "job_id" : 4456},
-            {"name": "checkSystem", "describe": "ทำการ....", "deadline": "2025-08-2026", "job_id" : 1240}
-            ]
-
-print("------------------------ Task Manager ------------------------")
-display_list()
-print("------------------------1. Add Task --------------------------")
-print("-----------------------2. Delete Task ------------------------")
-menu_selector = int(input("Please Select a menu: "))
-if menu_selector == 1:
-    print("you selected")
-    job_name = str(input("Please insert your job name :"))
-    job_describe = str(input("Please describe your job :"))
-    date_string = input("Enter a date in YYYY-MM-DD format: ")
-    try:
-        year, month, day = map(int, date_string.split('-'))
-        user_date = dt.date(year, month, day)
-        print(f"You entered: {user_date}")
     
+def search_jobs(jobs, keyword=None, enddate=None):
+    results = jobs
+
+    if keyword: 
+        keyword_lower = keyword.lower()
+        results = [
+            job for job in results
+            if keyword_lower in job['name'].lower() or keyword_lower in job['describe'].lower()
+        ]
+
+    if enddate:
+        results = [
+            job for job in results
+            if job['deadline'] == enddate
+        ]
+
+    return results
+while state == True:
+    clear_terminal()
+    #-------1. start Program
+
+    print("------------------------ Task Manager ------------------------")
+    display_list()
+    print("1. Add Task ")
+    print("2. Delete Task")
+    print("3. Search Task")
+    print("99. Exit")
+    menu_selector = int(input("Please Select a menu: "))
+    if menu_selector == 1:
+        print("you selected")
+        job_name = str(input("Please insert your job name :"))
+        job_describe = str(input("Please describe your job :"))
+        date_string = input("Enter a date in YYYY-MM-DD format: ")
+        try:
+            year, month, day = map(int, date_string.split('-'))
+            user_date = dt.date(year, month, day)
+            print(f"You entered: {user_date}")
         
-    except ValueError:
-        print("Invalid date format. Please use YYYY-MM-DD.")
+            
+        except ValueError:
+            print("Invalid date format. Please use YYYY-MM-DD.")
 
-    job = Job(job_name, job_describe, user_date)
-    job.create_job()
-    clear_terminal()
-    display_list()
-    
-elif menu_selector == 2:
-    job_id_to_remove = int(input("Please enter your job ID: "))
-    job_list = [i for i in job_list if i['job_id'] != job_id_to_remove]
-    clear_terminal()
-    display_list()
-  
+        job = Job(job_name, job_describe, user_date)
+        job.create_job()
+        clear_terminal()
+        display_list()
+        
+    elif menu_selector == 2:
+        job_id_to_remove = int(input("Please enter your job ID: "))
+        job_list = [i for i in job_list if i['job_id'] != job_id_to_remove]
+        clear_terminal()
+        display_list()
 
 
-else :
-    print("...")
+
+    elif menu_selector == 3:
+        print("1. Search by keyword")
+        print("2. Search bu deadline")
+        search_choice = int(input("Please select choice 1-2 : "))
+
+        if search_choice == 1:
+            search_key = input("Please input your keyword: ")
+            found_jobs = search_jobs(job_list, keyword=search_key)
+
+
+        elif search_choice == 2:
+            search_deadline = input("Please input your deadline: ")
+            found_jobs = search_jobs(job_list, enddate=search_deadline)
+
+
+        else:
+            print("Wrong input!!")
+            found_jobs = []
+        
+        print(f"\nพบงานทั้งหมด {len(found_jobs)} รายการ:")
+        for job in found_jobs:
+            print(job)
+
+            print("1. Go back to menu")
+            print("2. Exit")
+            search_end_choice = int(input("Please select your choice:"))
+            if search_end_choice == 1:
+                pass
+            else:
+                state = False
+        
+
+    elif menu_selector == 99:
+        state = False
+        
+    else :
+        print("...")
+
