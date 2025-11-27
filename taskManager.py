@@ -4,209 +4,213 @@ import os
 import json
 import time
 
-## class Job : ประกอบด้วย user_name, jobID, deadline
-
+# ---------------------- Global State ----------------------
 state = True
+DATA_FILE = "data.json"
+
 job_list = [
     {"name": "backup Server", "describe": "ทำการ....", "deadline": "2025-01-15", "job_id": "4456", "status": "unfinished"},
     {"name": "checkSystem", "describe": "ทำการ....", "deadline": "2025-08-24", "job_id": "1240", "status": "unfinished"}
 ]
 
+
+# ---------------------- Utility Function ----------------------
 def clear_terminal():
-    if os.name == 'nt':
-        os.system('cls')
-    else:
-        os.system('clear')
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 
+def input_non_empty(prompt):
+    """รับ input และบังคับให้ไม่เป็นค่าว่าง"""
+    while True:
+        value = input(prompt)
+        if value.strip():
+            return value
+        print("Input cannot be empty. Please try again.")
 
-class Job():
-    def __init__(self,name, describe ,deadline ,job_id = str(uuid.uuid4().int)[:4],job_status = "unfinished"):
+
+def input_date(prompt):
+    """รับวันที่รูปแบบ YYYY-MM-DD"""
+    while True:
+        date_string = input(prompt)
+        try:
+            year, month, day = map(int, date_string.split('-'))
+            date_obj = dt.date(year, month, day)
+            return str(date_obj)
+        except ValueError:
+            print("Invalid date format. Please use YYYY-MM-DD.")
+
+
+# ---------------------- Job Class ----------------------
+class Job:
+    def __init__(self, name, describe, deadline, job_id=None, status="unfinished"):
         self.name = name
         self.describe = describe
         self.deadline = deadline
-        self.job_id = job_id
-        self.job_status = job_status
-        pass
-    def create_job(self):
-        job_list.append({
-        "name": self.name,
-        "describe": self.describe,
-        "deadline": self.deadline,
-        "job_id": self.job_id,
-        "status": self.job_status
-    })
+        self.job_id = job_id or str(uuid.uuid4().int)[:4]
+        self.status = status
 
-# แสดงผล
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "describe": self.describe,
+            "deadline": self.deadline,
+            "job_id": self.job_id,
+            "status": self.status
+        }
+
+    def save(self):
+        job_list.append(self.to_dict())
+
+
+# ---------------------- Display ----------------------
 def display_list():
-    # รวบรวม key ทั้งหมด
-    headers = set()
-    for i in job_list:
-        headers.update(i.keys())
+    if not job_list:
+        print("No tasks available.\n")
+        return
+    
+    headers = ["job_id"] + sorted(h for h in job_list[0].keys() if h != "job_id")
 
-    # แปลงจาก set เป็น list และจัดลำดับให้ job_id อยู่หน้า
-    headers = list(headers)
+    widths = {
+        h: max(len(h), max(len(str(job.get(h, ""))) for job in job_list))
+        for h in headers
+    }
 
-    # ถ้าต้องการให้ job_id อยู่ลำดับแรก
-    if "job_id" in headers:
-        headers.remove("job_id")
-        headers.insert(0, "job_id")
-
-    # คำนวณความกว้างแต่ละคอลัมน์
-    widths = {}
-    for h in headers:
-        max_len = len(h)
-        for i in job_list:
-            max_len = max(max_len, len(str(i.get(h, ""))))
-        widths[h] = max_len
-
-    # print header
     header_row = " | ".join(h.ljust(widths[h]) for h in headers)
     print(header_row)
     print("-" * len(header_row))
 
-    # print each row
-    for i in job_list:
-        row = " | ".join(str(i.get(h, "")).ljust(widths[h]) for h in headers)
+    for job in job_list:
+        row = " | ".join(str(job.get(h, "")).ljust(widths[h]) for h in headers)
         print(row)
-    
-def search_jobs(jobs, keyword=None, enddate=None):
-    results = jobs
 
-    if keyword: 
-        keyword_lower = keyword.lower()
-        results = [
-            job for job in results
-            if keyword_lower in job['name'].lower() or keyword_lower in job['describe'].lower()
-        ]
+
+# ---------------------- Search ----------------------
+def search_jobs(keyword=None, enddate=None):
+    results = job_list
+
+    if keyword:
+        keyword = keyword.lower()
+        results = [job for job in results if
+                   keyword in job['name'].lower() or keyword in job['describe'].lower()]
 
     if enddate:
-        results = [
-            job for job in results
-            if job['deadline'] == enddate
-        ]
+        results = [job for job in results if job['deadline'] == enddate]
 
     return results
-while state == True:
+
+
+# ---------------------- File Operations ----------------------
+def save_to_file():
+    with open(DATA_FILE, 'w') as f:
+        json.dump(job_list, f, indent=4)
+    print("Saving...")
+    time.sleep(1)
+
+
+def load_from_file():
+    global job_list
+    if not os.path.exists(DATA_FILE):
+        print("File not found!")
+        return
+
+    with open(DATA_FILE, 'r') as f:
+        job_list = json.load(f)
+    print("Loading...")
+    time.sleep(1)
+
+
+# ---------------------- Main Loop ----------------------
+while state:
     clear_terminal()
-    #-------1. start Program
 
     print("------------------------ Task Manager ------------------------")
     display_list()
-    print("1. Add Task ")
+
+    print("\n1. Add Task")
     print("2. Delete Task")
     print("3. Search Task")
     print("4. Change status")
     print("5. Save")
     print("6. Load")
     print("99. Exit")
-    menu_selector = int(input("Please Select a menu: "))
-    if menu_selector == 1:
-        print("you selected")
-        while True:
-            job_name = str(input("Please insert your job name :"))
-            if job_name:
-                print(f"You entered: {job_name}")
-                break
-            else:
-                print("Input cannot be empty. Please try again.")
-        
-        job_describe = str(input("Please describe your job :"))
-        while True:
-            date_string = input("Enter a date in YYYY-MM-DD format: ")
 
-            try:
-                year, month, day = map(int, date_string.split('-'))
-                user_date = dt.date(year, month, day)
-                break
-        
-            
-            except ValueError:
-                print("Invalid date format. Please use YYYY-MM-DD.")
+    try:
+        menu = int(input("Please select a menu: "))
+    except ValueError:
+        print("Invalid input!")
+        time.sleep(1)
+        continue
 
-        job = Job(job_name, job_describe, str(user_date))
-        job.create_job()
-        clear_terminal()
-        # display_list()
-        
-    elif menu_selector == 2:
-        job_id_to_remove = input("Please enter your job ID: ")
-        job_list = [i for i in job_list if i['job_id'] != job_id_to_remove]
+    # ADD
+    if menu == 1:
+        name = input_non_empty("Please enter job name: ")
+        desc = input("Describe your job: ")
+        deadline = input_date("Enter deadline (YYYY-MM-DD): ")
 
-        clear_terminal()
-        display_list()
+        job = Job(name, desc, deadline)
+        job.save()
 
+    # DELETE
+    elif menu == 2:
+        job_id = input("Enter job ID to delete: ")
+        job_list = [job for job in job_list if job["job_id"] != job_id]
 
-
-    elif menu_selector == 3:
+    # SEARCH
+    elif menu == 3:
         print("1. Search by keyword")
         print("2. Search by deadline")
-        search_choice = int(input("Please select choice 1-2 : "))
 
-        if search_choice == 1:
-            search_key = input("Please input your keyword: ")
-            found_jobs = search_jobs(job_list, keyword=search_key)
+        try:
+            choice = int(input("Choose 1-2: "))
+        except ValueError:
+            print("Invalid input!")
+            continue
 
+        if choice == 1:
+            key = input("Enter keyword: ")
+            results = search_jobs(keyword=key)
 
-        elif search_choice == 2:
-            search_deadline = input("Please input your deadline: ")
-            found_jobs = search_jobs(job_list, enddate=search_deadline)
-
+        elif choice == 2:
+            date = input_date("Enter deadline (YYYY-MM-DD): ")
+            results = search_jobs(enddate=date)
 
         else:
-            print("Wrong input!!")
-            found_jobs = []
+            print("Invalid choice!")
+            continue
+
         clear_terminal()
-        print(f"\nพบงานทั้งหมด {len(found_jobs)} รายการ:")
-        for job in found_jobs:
+        print(f"Found {len(results)} task(s):\n")
+        for job in results:
             print(job)
 
-            print("1. Go back to menu")
-            print("2. Exit")
-            search_end_choice = int(input("Please select your choice:"))
-            if search_end_choice == 1:
-                pass
-            else:
-                state = False
-    elif menu_selector == 4:
-        job_id_to_change = input("Enter job ID to change status: ")
+        input("\nPress Enter to return to menu...")
 
+    # CHANGE STATUS
+    elif menu == 4:
+        job_id = input("Enter job ID to toggle status: ")
         found = False
+
         for job in job_list:
-            if job["job_id"] == job_id_to_change:
+            if job["job_id"] == job_id:
+                job["status"] = "finished" if job["status"] == "unfinished" else "unfinished"
                 found = True
-                # toggle
-                if job["status"] == "unfinished":
-                    job["status"] = "finished"
-                    print(f"Status changed: unfinished → finished")
-                else:
-                    job["status"] = "unfinished"
-                    print(f"Status changed: finished → unfinished")
+                print("Status updated!")
                 break
 
         if not found:
-            print("Job ID not found!")
+            print("Job not found!")
 
-        time.sleep(2)
+        time.sleep(1)
 
-    elif menu_selector == 5:
-        with open('data.json', 'w') as f:
-            json.dump(job_list, f, indent = 4)
-        print("Saving...")
-        time.sleep(3)
-    elif menu_selector == 6:
-        with open('data.json', 'r') as f:
-            job_list = json.load(f)
-        print("Loading...")
-        time.sleep(3)
+    elif menu == 5:
+        save_to_file()
 
+    elif menu == 6:
+        load_from_file()
 
-
-        
-
-    elif menu_selector == 99:
+    elif menu == 99:
         state = False
-        
-    else :
-        print("...")
 
+    else:
+        print("Invalid menu!")
+        time.sleep(1)
